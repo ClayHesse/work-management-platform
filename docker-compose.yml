@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: wmp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: wmp
+      POSTGRES_USER: wmp_user
+      POSTGRES_PASSWORD: wmp_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - wmp_postgres_data:/var/lib/postgresql
+
+volumes:
+  wmp_postgres_data:
