@@ -11,7 +11,7 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private UUID id;
+    private Long id;
 
     @Column(nullable = false, unique = true)
     private String username;
@@ -33,7 +33,7 @@ public class User {
     private Instant createdAt;
 
     public User() {}
-    public User(UUID id,  String username, String name, String email, String password, UserRole role) {
+    public User(Long id,  String username, String name, String email, String password, UserRole role) {
         this.id = id;
         this.username = username;
         this.name = name;
@@ -47,7 +47,7 @@ public class User {
         USER
     }
 
-    public UUID getId() {
+    public Long getId() {
         return id;
     }
 

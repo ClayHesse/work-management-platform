@@ -3,7 +3,7 @@ package com.clay.wmp.user.dto;
 import java.util.UUID;
 
 public record UserResponse(
-        UUID id,
+        Long id,
         String username,
         String name,
         String email,
