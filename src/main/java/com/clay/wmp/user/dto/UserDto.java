@@ -1,11 +1,11 @@
 package com.clay.wmp.user.dto;
 
-import java.util.UUID;
+import com.clay.wmp.user.entity.User;
 
-public record UserResponse(
+public record UserDto(
         Long id,
         String username,
         String name,
         String email,
-        String role
+        User.UserRole role
 ) {}

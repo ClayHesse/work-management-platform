@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Entity(name = "users")
 public class User {
@@ -27,24 +26,21 @@ public class User {
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    private UserRole role;
+    private UserRole role =  UserRole.USER;
 
     @CreationTimestamp
     private Instant createdAt;
 
     public User() {}
-    public User(Long id,  String username, String name, String email, String password, UserRole role) {
-        this.id = id;
+    public User(String username, String name, String email, String password) {
         this.username = username;
         this.name = name;
         this.email = email;
         this.password = password;
-        this.role = role;
     }
 
     public enum UserRole {
-        ADMIN,
-        USER
+        ADMIN, USER
     }
 
     public Long getId() {
