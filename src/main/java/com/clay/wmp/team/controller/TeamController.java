@@ -3,7 +3,7 @@ package com.clay.wmp.team.controller;
 import com.clay.wmp.team.dto.AddTeamMemberRequest;
 import com.clay.wmp.team.dto.TeamDto;
 import com.clay.wmp.team.dto.TeamMemberDto;
-import com.clay.wmp.team.entity.Team;
+import com.clay.wmp.team.dto.UpdateTeamRoleDto;
 import com.clay.wmp.team.service.TeamService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -56,6 +56,12 @@ public class TeamController {
         return ResponseEntity.status(HttpStatus.CREATED).body(teamService.createTeam(teamDto));
     }
 
+    @PutMapping("/{id}")
+    public TeamDto updateTeam(@PathVariable Long id, TeamDto teamDto) {
+        log.info("Attempting to update team by id: {}", id);
+        return teamService.updateTeam(id, teamDto);
+    }
+
     @PostMapping("/{id}/members")
     public TeamMemberDto addMemberToTeam(
             @PathVariable Long id, @Valid @RequestBody AddTeamMemberRequest addTeamMemberRequest) {
@@ -63,10 +69,16 @@ public class TeamController {
         return teamService.addTeamMember(id, addTeamMemberRequest);
     }
 
-    @PutMapping("/{id}")
-    public TeamDto updateTeam(@PathVariable Long id, TeamDto teamDto) {
-        log.info("Attempting to update team by id: {}", id);
-        return teamService.updateTeam(id, teamDto);
+    @DeleteMapping("/{id}/members/{userId}")
+    public ResponseEntity<Void> removeMemberFromTeam(@PathVariable Long id, @PathVariable Long userId) {
+        teamService.removeMemberFromTeam(id, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}/members/{userId}/role")
+    public TeamMemberDto updateTeamMemberRole (
+            @PathVariable Long id, @PathVariable Long userId, @Valid @RequestBody UpdateTeamRoleDto teamRoleDto) {
+        return teamService.updateMemberRole(id, userId, teamRoleDto);
     }
 
     @DeleteMapping("/{id}")

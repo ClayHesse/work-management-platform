@@ -1,2 +1,2 @@
 # work-management-platform
-A simplified JIRA type application to showcase modern Java backend architecture.
+A simplified JIRA type application to showcase building basic modern Java backend architecture.

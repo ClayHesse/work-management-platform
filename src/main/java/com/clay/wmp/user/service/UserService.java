@@ -67,6 +67,11 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
+    @Transactional(readOnly = true)
+    public User getUserReferenceById(Long id) {
+        return userRepository.getReferenceById(id);
+    }
+
     @Transactional
     public UserDto createUser(RegisterUserRequest registerUserRequest) {
 

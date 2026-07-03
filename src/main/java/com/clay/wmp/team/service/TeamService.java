@@ -2,15 +2,11 @@ package com.clay.wmp.team.service;
 
 import com.clay.wmp.common.exception.DuplicateResourceException;
 import com.clay.wmp.common.exception.ResourceNotFoundException;
-import com.clay.wmp.team.dto.AddTeamMemberRequest;
-import com.clay.wmp.team.dto.TeamDto;
-import com.clay.wmp.team.dto.TeamMapper;
-import com.clay.wmp.team.dto.TeamMemberDto;
+import com.clay.wmp.team.dto.*;
 import com.clay.wmp.team.entity.Team;
 import com.clay.wmp.team.entity.TeamMember;
 import com.clay.wmp.team.repository.TeamMemberRepository;
 import com.clay.wmp.team.repository.TeamRepository;
-import com.clay.wmp.user.repository.UserRepository;
 import com.clay.wmp.user.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,13 +24,11 @@ public class TeamService {
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final UserService userService;
-    private final UserRepository userRepository;
 
-    public TeamService(TeamRepository teamRepository, TeamMemberRepository teamMemberRepository, UserService userService, UserRepository userRepository) {
+    public TeamService(TeamRepository teamRepository, TeamMemberRepository teamMemberRepository, UserService userService) {
         this.teamRepository = teamRepository;
         this.teamMemberRepository = teamMemberRepository;
         this.userService = userService;
-        this.userRepository = userRepository;
     }
 
     @Transactional(readOnly = true)
@@ -46,6 +40,11 @@ public class TeamService {
     public TeamDto getTeamById(Long id) {
         return teamRepository.findById(id)
                 .map(TeamMapper::mapTeamToTeamDto)
+                .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
+    }
+
+    public Team getTeamEntityById(Long id) {
+        return teamRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
     }
 
@@ -86,11 +85,13 @@ public class TeamService {
         teamRepository.deleteById(id);
     }
 
+    @Transactional(readOnly = true)
     public List<TeamMemberDto> getTeamMembersById(@PathVariable Long id) {
         return teamMemberRepository.findByTeamIdWithUser(id)
                 .stream().map(TeamMapper::mapTeamMemberToTeamMemberDto).toList();
     };
 
+    @Transactional
     public TeamMemberDto addTeamMember(Long id, AddTeamMemberRequest addTeamMemberRequest) {
         if (teamMemberRepository.existsByTeamIdAndUserId(id, addTeamMemberRequest.userId())) {
             throw new DuplicateResourceException("Team Member already exists");
@@ -101,10 +102,24 @@ public class TeamService {
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
         teamMember.setTeam(team);
 
-        var user = userService.getUserEntityById(addTeamMemberRequest.userId());
-        teamMember.setUser(user);
-
+        teamMember.setUser(userService.getUserEntityById(addTeamMemberRequest.userId()));
         teamMember.setRole(addTeamMemberRequest.role());
+        return TeamMapper.mapTeamMemberToTeamMemberDto(teamMemberRepository.save(teamMember));
+    }
+
+    public void removeMemberFromTeam(Long teamId, Long userId) {
+        var member = teamMemberRepository.findByTeamIdAndUserId(teamId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Team Member not found"));
+
+        teamMemberRepository.delete(member);
+        log.info("Removed user {} from team {}", userId, teamId);
+    }
+
+    public TeamMemberDto updateMemberRole(Long teamId, Long userId, UpdateTeamRoleDto  updateTeamRoleDto) {
+        var teamMember = teamMemberRepository.findByTeamIdAndUserId(teamId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Team Member not found"));
+
+        teamMember.setRole(updateTeamRoleDto.role());
         return TeamMapper.mapTeamMemberToTeamMemberDto(teamMemberRepository.save(teamMember));
     }
 }
