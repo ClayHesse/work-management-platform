@@ -1,3 +1,4 @@
+/*
 package com.clay.wmp.task.dto;
 
 import com.clay.wmp.task.entity.Task;
@@ -22,3 +23,4 @@ public class TaskMapper {
         );
     }
 }
+*/

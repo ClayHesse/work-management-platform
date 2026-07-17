@@ -1,6 +1,7 @@
 package com.clay.wmp.team.repository;
 
 import com.clay.wmp.team.entity.TeamMember;
+import com.clay.wmp.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -18,4 +19,6 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
     List<TeamMember> findByTeamIdWithUser(Long id);
     boolean existsByTeamIdAndUserId(Long teamId, Long userId);
     Optional<TeamMember> findByTeamIdAndUserId(Long teamId, Long userId);
+    boolean existsByUser_Id(Long id);
+    void deleteByTeam_Id(Long teamId);
 }

@@ -7,7 +7,9 @@ import org.apache.coyote.Response;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -32,7 +34,11 @@ public class TaskController {
 
     @PostMapping
     public ResponseEntity<TaskDto> createTask(@Valid @RequestBody CreateTaskRequest createTaskRequest) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(taskService.createTask(createTaskRequest));
+        var task = taskService.createTask(createTaskRequest);
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest().path("/{id}")
+                .buildAndExpand(task.id()).toUri();
+        return ResponseEntity.created(location).body(task);
     }
 
     @PutMapping("/{id}")

@@ -2,6 +2,7 @@ package com.clay.wmp.project.controller;
 
 import com.clay.wmp.project.dto.CreateProjectRequest;
 import com.clay.wmp.project.dto.ProjectDto;
+import com.clay.wmp.project.dto.UpdateProjectRequest;
 import com.clay.wmp.project.service.ProjectService;
 import com.clay.wmp.task.dto.TaskDto;
 import com.clay.wmp.task.service.TaskService;
@@ -11,7 +12,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -40,12 +43,17 @@ public class ProjectController {
 
     @PostMapping
     public ResponseEntity<ProjectDto> createProject(@Valid @RequestBody CreateProjectRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(projectService.createProject(request));
+        var project = projectService.createProject(request);
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest().path("/{id}")
+                .buildAndExpand(project.id()).toUri();
+        return ResponseEntity.created(location).body(project);
     }
 
     @PutMapping("/{id}")
-    public ProjectDto updateProject(@PathVariable Long id, @RequestBody ProjectDto projectDto) {
-        return projectService.updateProject(id, projectDto);
+    public ProjectDto updateProject(@PathVariable Long id,
+                                    @Valid @RequestBody UpdateProjectRequest updateProjectRequest) {
+        return projectService.updateProject(id, updateProjectRequest);
     }
 
     @DeleteMapping("/{id}")

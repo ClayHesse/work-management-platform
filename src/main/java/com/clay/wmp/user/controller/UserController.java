@@ -1,8 +1,6 @@
 package com.clay.wmp.user.controller;
 
-import com.clay.wmp.user.dto.RegisterUserRequest;
-import com.clay.wmp.user.dto.UpdateRoleDto;
-import com.clay.wmp.user.dto.UserDto;
+import com.clay.wmp.user.dto.*;
 import com.clay.wmp.user.entity.User;
 import com.clay.wmp.user.service.UserService;
 import jakarta.validation.Valid;
@@ -10,8 +8,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -50,28 +52,53 @@ public class UserController {
         return userService.getUserByEmail(email);
     }
 
+    @GetMapping("/me")
+    public UserDto getCurrentUser() {
+        log.info("Fetching current user information");
+        return userService.getCurrentUser();
+    }
+
     @GetMapping("/role/{role}")
     public List<UserDto> getUserByRole(@PathVariable User.UserRole role) {
         log.info("Fetching users by role: {}", role);
         return userService.getUsersByRole(role);
     }
 
+    // This will become admin create user later once auth register and login is added.
     @PostMapping
     public ResponseEntity<UserDto> createUser(@Valid @RequestBody RegisterUserRequest registerUserRequest) {
         log.info("Attempting to create user with username: {}", registerUserRequest.username());
-        return ResponseEntity.status(HttpStatus.CREATED).body(userService.createUser(registerUserRequest));
+        var user = userService.createUser(registerUserRequest);
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest().path("/{id}").buildAndExpand(user.id()).toUri();
+        return ResponseEntity.created(location).body(user);
     }
 
     @PutMapping("/{id}")
-    public UserDto updateUser(@PathVariable Long id, @Valid @RequestBody UserDto userDto) {
+    public UserDto updateUser(@PathVariable Long id,
+                              @Valid @RequestBody UpdateUserProfileRequest updateUserProfileRequest) {
         log.info("Attempting to update user with id: {}", id);
-        return userService.updateUser(id, userDto);
+        return userService.updateUser(id, updateUserProfileRequest);
+    }
+
+    @PutMapping("/me")
+    public UserDto updateCurrentUser(/*@AuthenticationPrincipal jwt,*/ @Valid @RequestBody UpdateUserProfileRequest updateUserProfileRequest) {
+        log.info("Attempting to update current user with username: {}", updateUserProfileRequest.username());
+        Long id = 1L; // TODO Pulled from auth object
+        return userService.updateUser(id, updateUserProfileRequest);
     }
 
     @PatchMapping("/{id}/role")
-    public UserDto updateRole(@PathVariable Long id, @Valid @RequestBody UpdateRoleDto updateRoleDto) {
+    public UserDto updateRole(@PathVariable Long id, @Valid @RequestBody UpdateUserRoleRequest updateUserRoleRequest) {
         log.info("Attempting to update role for user with id: {}", id);
-        return userService.updateRole(id, updateRoleDto);
+        return userService.updateRole(id, updateUserRoleRequest);
+    }
+
+    @PatchMapping("/me/password")
+    public UserDto updateUserPassword(/*@AuthenticationPrincipal jwt,*/ @Valid @RequestBody UpdateUserPasswordRequest updateUserPasswordRequest) {
+        Long id = 1L; //TODO id from auth object
+        log.info("Attempting to update password for user with id: {}", id);
+        return userService.updatePassword(id, updateUserPasswordRequest);
     }
 
     @DeleteMapping("/{id}")

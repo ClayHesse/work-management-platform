@@ -3,7 +3,7 @@ package com.clay.wmp.project.service;
 import com.clay.wmp.common.exception.ResourceNotFoundException;
 import com.clay.wmp.project.dto.CreateProjectRequest;
 import com.clay.wmp.project.dto.ProjectDto;
-import com.clay.wmp.project.dto.ProjectMapper;
+import com.clay.wmp.project.dto.UpdateProjectRequest;
 import com.clay.wmp.project.entity.Project;
 import com.clay.wmp.project.repository.ProjectRepository;
 import com.clay.wmp.team.service.TeamService;
@@ -32,13 +32,13 @@ public class ProjectService {
 
     @Transactional(readOnly = true)
     public List<ProjectDto> getAllProjects() {
-        return projectRepository.findAll().stream().map(ProjectMapper::mapToProjectDto).toList();
+        return projectRepository.findAll().stream().map(ProjectDto::fromProject).toList();
     }
 
     @Transactional(readOnly = true)
     public ProjectDto getProjectById(Long id) {
         return projectRepository.findById(id)
-                .map(ProjectMapper::mapToProjectDto)
+                .map(ProjectDto::fromProject)
                 .orElseThrow(() -> new ResourceNotFoundException("No Project found with that Id"));
     }
 
@@ -60,32 +60,43 @@ public class ProjectService {
                 requestDto.description(),
                 userService.getUserEntityById(requestDto.ownerId()),
                 (requestDto.teamId() != null) ? teamService.getTeamEntityById(requestDto.teamId()) : null);
-        return ProjectMapper.mapToProjectDto(projectRepository.save(project));
+        return ProjectDto.fromProject(projectRepository.save(project));
     }
 
     @Transactional
-    public ProjectDto updateProject(Long id, ProjectDto projectDto) {
+    public ProjectDto updateProject(Long id, UpdateProjectRequest updateProjectRequest) {
         var project = projectRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("No project with Id"));
 
-        project.setDescription(projectDto.description());
-        project.setStatus(projectDto.status());
-        project.setTitle(projectDto.title());
-        if (project.getAssignedTeam() == null || !projectDto.teamId().equals(project.getAssignedTeam().getId())) {
-            project.setAssignedTeam(teamService.getTeamEntityById(projectDto.teamId()));
+        project.setTitle(updateProjectRequest.title());
+        project.setDescription(updateProjectRequest.description());
+        project.setStatus(updateProjectRequest.status());
+        project.setOwner(userService.getUserEntityById(updateProjectRequest.ownerId())); //DTO owner id cannot be null
+
+        if(updateProjectRequest.teamId() != null) {
+            project.setAssignedTeam(teamService.getTeamEntityById(updateProjectRequest.teamId()));
         }
-        if (!projectDto.ownerId().equals(project.getOwner().getId())) {
-            project.setOwner(userService.getUserEntityById(projectDto.ownerId()));
+        else {
+            project.setAssignedTeam(null);
         }
 
-        return ProjectMapper.mapToProjectDto(projectRepository.save(project));
+        return ProjectDto.fromProject(projectRepository.save(project));
     }
 
+    @Transactional
     public void deleteProject(Long id) {
         if (!projectRepository.existsById(id)) {
             throw new ResourceNotFoundException("No Project found with that Id");
         }
 
         projectRepository.deleteById(id);
+    }
+
+    public boolean teamHasProjects(Long teamId) {
+        return projectRepository.existsByAssignedTeam_Id(teamId);
+    }
+
+    public boolean userHasProjects(Long id) {
+        return projectRepository.existsByOwner_Id(id);
     }
 }

@@ -1,9 +1,6 @@
 package com.clay.wmp.team.controller;
 
-import com.clay.wmp.team.dto.AddTeamMemberRequest;
-import com.clay.wmp.team.dto.TeamDto;
-import com.clay.wmp.team.dto.TeamMemberDto;
-import com.clay.wmp.team.dto.UpdateTeamRoleDto;
+import com.clay.wmp.team.dto.*;
 import com.clay.wmp.team.service.TeamService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -11,7 +8,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -51,15 +50,19 @@ public class TeamController {
     }
 
     @PostMapping
-    public ResponseEntity<TeamDto> createTeam(TeamDto teamDto) {
+    public ResponseEntity<TeamDto> createTeam(@Valid @RequestBody CreateUpdateTeamRequest createUpdateTeamRequest) {
         log.info("Attempting to create team");
-        return ResponseEntity.status(HttpStatus.CREATED).body(teamService.createTeam(teamDto));
+        var team = teamService.createTeam(createUpdateTeamRequest);
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest().path("/{id}")
+                .buildAndExpand(team.id()).toUri();
+        return ResponseEntity.created(location).body(team);
     }
 
     @PutMapping("/{id}")
-    public TeamDto updateTeam(@PathVariable Long id, TeamDto teamDto) {
+    public TeamDto updateTeam(@PathVariable Long id, @Valid @RequestBody CreateUpdateTeamRequest createUpdateTeamRequest) {
         log.info("Attempting to update team by id: {}", id);
-        return teamService.updateTeam(id, teamDto);
+        return teamService.updateTeam(id, createUpdateTeamRequest);
     }
 
     @PostMapping("/{id}/members")

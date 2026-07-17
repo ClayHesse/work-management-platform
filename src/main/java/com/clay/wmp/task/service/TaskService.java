@@ -28,13 +28,13 @@ public class TaskService {
     @Transactional(readOnly = true)
     public List<TaskDto> getAllTasks() {
         return taskRepository.findAll()
-                .stream().map(TaskMapper::mapTaskToDto).toList();
+                .stream().map(TaskDto::fromTask).toList();
     }
 
     @Transactional(readOnly = true)
     public TaskDto getTaskById(Long id) {
         return taskRepository.findById(id)
-                .map(TaskMapper::mapTaskToDto)
+                .map(TaskDto::fromTask)
                 .orElseThrow(() -> new ResourceNotFoundException("No task found with this Id"));
     }
 
@@ -45,7 +45,7 @@ public class TaskService {
         }
 
         return taskRepository.findByProjectId(id)
-                .stream().map(TaskMapper::mapTaskToDto).toList();
+                .stream().map(TaskDto::fromTask).toList();
     }
 
     @Transactional
@@ -66,7 +66,7 @@ public class TaskService {
             task.setPriority(createTaskRequest.priority());
         }
 
-        return TaskMapper.mapTaskToDto(taskRepository.save(task));
+        return TaskDto.fromTask(taskRepository.save(task));
     }
 
     @Transactional
@@ -83,7 +83,7 @@ public class TaskService {
             task.setAssignedTo(userService.getUserEntityById(updateTaskRequest.assignedToId()));
         }
 
-        return TaskMapper.mapTaskToDto(taskRepository.save(task));
+        return TaskDto.fromTask(taskRepository.save(task));
     }
 
     @Transactional
@@ -100,7 +100,7 @@ public class TaskService {
         var task = taskRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("No task found with this Id"));
         task.setStatus(updateTaskStatusRequest.status());
-        return TaskMapper.mapTaskToDto(taskRepository.save(task));
+        return TaskDto.fromTask(taskRepository.save(task));
     }
 
     @Transactional
@@ -109,6 +109,10 @@ public class TaskService {
                 .orElseThrow(() -> new ResourceNotFoundException("No task found with this Id"));
         task.setAssignedTo(userService.getUserReferenceById(assignTaskRequest.assignedToId()));
         task.setStatus(Task.TaskStatus.ASSIGNED);
-        return TaskMapper.mapTaskToDto(taskRepository.save(task));
+        return TaskDto.fromTask(taskRepository.save(task));
+    }
+
+    public boolean hasTasks(Long id) {
+        return taskRepository.existsByAssignedTo_IdOrCreatedBy_Id(id, id);
     }
 }

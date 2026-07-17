@@ -15,4 +15,5 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
     @EntityGraph(attributePaths = {"project","createdBy","assignedTo"})
     List<Task> findByProjectId(Long projectId);
+    boolean existsByAssignedTo_IdOrCreatedBy_Id(Long id, Long createdById);
 }

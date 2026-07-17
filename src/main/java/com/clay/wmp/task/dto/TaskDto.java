@@ -18,4 +18,22 @@ public record TaskDto(
         Task.TaskPriority priority,
         Instant createdAt,
         Instant updatedAt
-) {}
+) {
+    public static TaskDto fromTask(Task task) {
+        return new TaskDto(
+                task.getId(),
+                task.getTitle(),
+                task.getDescription(),
+                task.getProject().getId(),
+                task.getProject().getTitle(),
+                task.getCreatedBy().getId(),
+                task.getCreatedBy().getName(),
+                (task.getAssignedTo() != null) ? task.getAssignedTo().getId() : null,
+                (task.getAssignedTo() != null) ? task.getAssignedTo().getName() : null,
+                task.getStatus(),
+                task.getPriority(),
+                task.getCreatedAt(),
+                task.getUpdatedAt()
+        );
+    }
+}

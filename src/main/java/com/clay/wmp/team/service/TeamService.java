@@ -1,7 +1,9 @@
 package com.clay.wmp.team.service;
 
 import com.clay.wmp.common.exception.DuplicateResourceException;
+import com.clay.wmp.common.exception.ResourceInUseException;
 import com.clay.wmp.common.exception.ResourceNotFoundException;
+import com.clay.wmp.project.service.ProjectService;
 import com.clay.wmp.team.dto.*;
 import com.clay.wmp.team.entity.Team;
 import com.clay.wmp.team.entity.TeamMember;
@@ -12,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
 
@@ -23,26 +24,29 @@ public class TeamService {
 
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
+    private final ProjectService projectService;
     private final UserService userService;
 
-    public TeamService(TeamRepository teamRepository, TeamMemberRepository teamMemberRepository, UserService userService) {
+    public TeamService(TeamRepository teamRepository, TeamMemberRepository teamMemberRepository, ProjectService projectService, UserService userService) {
         this.teamRepository = teamRepository;
         this.teamMemberRepository = teamMemberRepository;
+        this.projectService = projectService;
         this.userService = userService;
     }
 
     @Transactional(readOnly = true)
     public List<TeamDto> getAllTeams() {
-        return teamRepository.findAll().stream().map(TeamMapper::mapTeamToTeamDto).toList();
+        return teamRepository.findAll().stream().map(TeamDto::fromTeam).toList();
     }
 
     @Transactional(readOnly = true)
     public TeamDto getTeamById(Long id) {
         return teamRepository.findById(id)
-                .map(TeamMapper::mapTeamToTeamDto)
+                .map(TeamDto::fromTeam)
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
     }
 
+    @Transactional(readOnly = true)
     public Team getTeamEntityById(Long id) {
         return teamRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
@@ -51,29 +55,31 @@ public class TeamService {
     @Transactional(readOnly = true)
     public TeamDto getTeamByName(String name) {
         return teamRepository.findTeamByNameIgnoreCase(name)
-                .map(TeamMapper::mapTeamToTeamDto)
+                .map(TeamDto::fromTeam)
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
     }
 
-    public TeamDto createTeam(TeamDto teamDto) {
-        if(teamRepository.existsByNameIgnoreCase(teamDto.name())) {
+    @Transactional
+    public TeamDto createTeam(CreateUpdateTeamRequest createUpdateTeamRequest) {
+        if(teamRepository.existsByNameIgnoreCase(createUpdateTeamRequest.name())) {
             throw new DuplicateResourceException("Team already exists");
         }
 
-        return TeamMapper.mapTeamToTeamDto(teamRepository.save(new Team(teamDto.name())));
+        return TeamDto.fromTeam(teamRepository.save(new Team(createUpdateTeamRequest.name())));
     }
 
-    public TeamDto updateTeam(Long id, TeamDto teamDto) {
+    @Transactional
+    public TeamDto updateTeam(Long id, CreateUpdateTeamRequest createUpdateTeamRequest) {
         var team = teamRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
 
-        if(!teamDto.name().equals(team.getName()) &&
-                teamRepository.existsByNameIgnoreCase(teamDto.name())) {
+        if(!createUpdateTeamRequest.name().equals(team.getName()) &&
+                teamRepository.existsByNameIgnoreCase(createUpdateTeamRequest.name())) {
             throw new DuplicateResourceException("Team name already exists");
         }
 
-        team.setName(teamDto.name());
-        return TeamMapper.mapTeamToTeamDto(teamRepository.save(team));
+        team.setName(createUpdateTeamRequest.name());
+        return TeamDto.fromTeam(teamRepository.save(team));
     }
 
     @Transactional
@@ -82,13 +88,18 @@ public class TeamService {
             throw new ResourceNotFoundException("Team not found");
         }
 
+        if (projectService.teamHasProjects(id)) {
+            throw new ResourceInUseException("This team has assigned projects and cannot be deleted");
+        }
+
+        teamMemberRepository.deleteByTeam_Id(id);
         teamRepository.deleteById(id);
     }
 
     @Transactional(readOnly = true)
-    public List<TeamMemberDto> getTeamMembersById(@PathVariable Long id) {
+    public List<TeamMemberDto> getTeamMembersById(Long id) {
         return teamMemberRepository.findByTeamIdWithUser(id)
-                .stream().map(TeamMapper::mapTeamMemberToTeamMemberDto).toList();
+                .stream().map(TeamMemberDto::fromTeamMember).toList();
     };
 
     @Transactional
@@ -104,9 +115,10 @@ public class TeamService {
 
         teamMember.setUser(userService.getUserEntityById(addTeamMemberRequest.userId()));
         teamMember.setRole(addTeamMemberRequest.role());
-        return TeamMapper.mapTeamMemberToTeamMemberDto(teamMemberRepository.save(teamMember));
+        return TeamMemberDto.fromTeamMember(teamMemberRepository.save(teamMember));
     }
 
+    @Transactional
     public void removeMemberFromTeam(Long teamId, Long userId) {
         var member = teamMemberRepository.findByTeamIdAndUserId(teamId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Team Member not found"));
@@ -115,11 +127,16 @@ public class TeamService {
         log.info("Removed user {} from team {}", userId, teamId);
     }
 
+    @Transactional
     public TeamMemberDto updateMemberRole(Long teamId, Long userId, UpdateTeamRoleDto  updateTeamRoleDto) {
         var teamMember = teamMemberRepository.findByTeamIdAndUserId(teamId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Team Member not found"));
 
         teamMember.setRole(updateTeamRoleDto.role());
-        return TeamMapper.mapTeamMemberToTeamMemberDto(teamMemberRepository.save(teamMember));
+        return TeamMemberDto.fromTeamMember(teamMemberRepository.save(teamMember));
+    }
+
+    public boolean isTeamMember(Long id) {
+        return teamMemberRepository.existsByUser_Id(id);
     }
 }

@@ -12,6 +12,7 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    //Username will eventually be system generated.
     @Column(nullable = false, unique = true)
     private String username;
 

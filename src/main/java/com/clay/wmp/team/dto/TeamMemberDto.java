@@ -9,4 +9,13 @@ public record TeamMemberDto(
         String username,
         TeamMember.TeamRole role
 ) {
+    public static TeamMemberDto fromTeamMember(TeamMember teamMember) {
+        return new TeamMemberDto(
+                teamMember.getTeam().getId(),
+                teamMember.getTeam().getName(),
+                teamMember.getUser().getId(),
+                teamMember.getUser().getUsername(),
+                teamMember.getRole()
+        );
+    }
 }
